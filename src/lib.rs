@@ -21,6 +21,12 @@ pub use config::SqliteConfig;
 pub use connection::SqliteConnectionProvider;
 pub use service::{SqliteCommand, SqliteEvent, SqliteService};
 
+pub fn test_connection(config: &SqliteConfig) -> Result<String, String> {
+    service::SqliteService::new_direct(config)
+        .map(|_| format!("opened '{}'", config.path))
+        .map_err(|e| e.to_string())
+}
+
 /// Query table schema from a SQLite database using PRAGMA statements.
 /// Usable from any thread that has a `rusqlite::Connection`.
 pub fn sqlite_describe_table(conn: &Connection, table: &str) -> Result<TableSchema, String> {

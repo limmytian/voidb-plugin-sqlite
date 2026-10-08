@@ -49,8 +49,11 @@ impl CliPlugin for SqliteCliPlugin {
                 .arg(conn_arg.clone()),
             Command::new("describe")
                 .about("Describe table schema")
-                .arg(conn_arg)
+                .arg(conn_arg.clone())
                 .arg(Arg::new("table").required(true).help("Table name")),
+            Command::new("test")
+                .about("Test connection to SQLite database file")
+                .arg(conn_arg),
         ]
     }
 
@@ -64,6 +67,7 @@ impl CliPlugin for SqliteCliPlugin {
             "query" => self.handle_query(matches, ctx).await,
             "tables" => self.handle_tables(matches, ctx).await,
             "describe" => self.handle_describe(matches, ctx).await,
+            "test" => self.handle_test(matches, ctx).await,
             _ => Err(VoidbError::Plugin(format!("Unknown command: {}", command))),
         }
     }
@@ -261,5 +265,23 @@ impl SqliteCliPlugin {
         }
 
         Ok(())
+    }
+
+    async fn handle_test(
+        &self,
+        matches: &ArgMatches,
+        ctx: &CliContext,
+    ) -> Result<(), VoidbError> {
+        let conn_name = matches.get_one::<String>("connection").unwrap();
+        match self.create_service(conn_name, ctx) {
+            Ok(_) => {
+                println!("OK: Opened SQLite database successfully");
+                Ok(())
+            }
+            Err(e) => {
+                println!("FAIL: {}", e);
+                Err(e)
+            }
+        }
     }
 }
