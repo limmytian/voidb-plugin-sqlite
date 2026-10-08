@@ -1,0 +1,28 @@
+# VoidB SQLite Plugin (`voidb-plugin-sqlite`)
+
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+
+Independent process plugin for [VoidB](https://github.com/limmytian/voidb) to connect, inspect, and manage SQLite databases.
+
+## Features
+
+- **Autonomous Process Architecture**: Runs in an isolated OS process communicating with VoidB via `stdio-jsonrpc`.
+- **Tri-Modal Operation**:
+  - `test`: Automated connectivity verification.
+  - `serve`: `stdio-jsonrpc` protocol server for AI Agents and automated orchestration.
+  - Domain commands: SQL query execution, table inspection, schema description.
+
+## Usage & Operational Modes
+
+```bash
+# Connectivity test
+voidb-cli sqlite test --profile my-sqlite
+
+# Run SQL queries and schema inspection
+voidb-cli sqlite tables --profile my-sqlite
+voidb-cli sqlite describe users --profile my-sqlite
+voidb-cli sqlite query "SELECT * FROM users LIMIT 10;" --profile my-sqlite
+
+# Machine / Agent stdio-jsonrpc server
+voidb-cli sqlite serve
+```
