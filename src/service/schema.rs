@@ -13,7 +13,9 @@ use super::events::IndexInfo;
 type StructureResult = (Vec<ColumnInfo>, Vec<IndexInfo>, Vec<ForeignKeyInfo>);
 
 /// List all tables and views in the database.
-pub fn handle_list_tables(conn: &Connection) -> Result<(Vec<super::events::TableMeta>, Vec<String>), String> {
+pub fn handle_list_tables(
+    conn: &Connection,
+) -> Result<(Vec<super::events::TableMeta>, Vec<String>), String> {
     let mut stmt = conn
         .prepare("SELECT name, type FROM sqlite_master WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' ORDER BY name")
         .map_err(|e| format!("list_tables: {}", e))?;
@@ -64,10 +66,7 @@ pub fn handle_show_create_table(conn: &Connection, table: &str) -> Result<String
 }
 
 /// Load full structure info (columns + indexes + foreign keys).
-pub fn handle_load_structure(
-    conn: &Connection,
-    table: &str,
-) -> Result<StructureResult, String> {
+pub fn handle_load_structure(conn: &Connection, table: &str) -> Result<StructureResult, String> {
     let schema = crate::sqlite_describe_table(conn, table)?;
 
     let indexes = schema
@@ -85,7 +84,10 @@ pub fn handle_load_structure(
 }
 
 /// Load foreign keys for a specific table.
-pub fn handle_list_foreign_keys(conn: &Connection, table: &str) -> Result<Vec<ForeignKeyInfo>, String> {
+pub fn handle_list_foreign_keys(
+    conn: &Connection,
+    table: &str,
+) -> Result<Vec<ForeignKeyInfo>, String> {
     let schema = crate::sqlite_describe_table(conn, table)?;
     Ok(schema.foreign_keys)
 }
@@ -94,9 +96,13 @@ pub fn handle_list_foreign_keys(conn: &Connection, table: &str) -> Result<Vec<Fo
 ///
 /// Used by db_browser when writing copied table data to VoidbClipboard,
 /// which requires a `TableSchema` struct.
-pub fn table_copy_data_to_schema(td: &super::commands::TableCopyData) -> voidb_core::database::types::TableSchema {
-    let columns: Vec<ColumnInfo> = td.column_names.iter().map(|name| {
-        ColumnInfo {
+pub fn table_copy_data_to_schema(
+    td: &super::commands::TableCopyData,
+) -> voidb_core::database::types::TableSchema {
+    let columns: Vec<ColumnInfo> = td
+        .column_names
+        .iter()
+        .map(|name| ColumnInfo {
             name: name.clone(),
             data_type: String::new(),
             nullable: true,
@@ -104,8 +110,8 @@ pub fn table_copy_data_to_schema(td: &super::commands::TableCopyData) -> voidb_c
             default_value: None,
             max_length: None,
             extra: String::new(),
-        }
-    }).collect();
+        })
+        .collect();
 
     voidb_core::database::types::TableSchema {
         database: String::new(),

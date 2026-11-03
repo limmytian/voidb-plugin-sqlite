@@ -1,8 +1,8 @@
 //! Paginated data loading handler functions for the SQLite SyncWorker.
 
 use rusqlite::Connection;
-use voidb_core::{ColumnInfo, Row};
 use voidb_core::CellValue;
+use voidb_core::{ColumnInfo, Row};
 
 use super::value_convert::{decode_sqlite_value, extract_columns};
 

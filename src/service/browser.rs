@@ -12,20 +12,23 @@ use super::events::{BrowserEvent, TableMeta};
 use super::value_convert::{decode_sqlite_value, quote_sqlite_value};
 
 /// Handle a browser command. Returns an event or error string.
-pub fn handle_browser(
-    conn: &Connection,
-    cmd: BrowserCommand,
-) -> Result<BrowserEvent, String> {
+pub fn handle_browser(conn: &Connection, cmd: BrowserCommand) -> Result<BrowserEvent, String> {
     match cmd {
         BrowserCommand::LoadTables => handle_load_tables(conn),
         BrowserCommand::LoadPreview { table } => handle_load_preview(conn, &table),
         BrowserCommand::CopyTables { tables } => handle_copy_tables(conn, &tables),
         BrowserCommand::PasteTables { table_data } => handle_paste_tables(conn, &table_data),
         BrowserCommand::ExecuteSql { sql } => handle_execute_sql(conn, &sql),
-        BrowserCommand::LoadColumnsForEditor { table } => handle_load_columns_for_editor(conn, &table),
+        BrowserCommand::LoadColumnsForEditor { table } => {
+            handle_load_columns_for_editor(conn, &table)
+        }
         BrowserCommand::DropTable { table } => handle_drop_table(conn, &table),
-        BrowserCommand::RenameTable { old_name, new_name } => handle_rename_table(conn, &old_name, &new_name),
-        BrowserCommand::DuplicateTable { source, target } => handle_duplicate_table(conn, &source, &target),
+        BrowserCommand::RenameTable { old_name, new_name } => {
+            handle_rename_table(conn, &old_name, &new_name)
+        }
+        BrowserCommand::DuplicateTable { source, target } => {
+            handle_duplicate_table(conn, &source, &target)
+        }
     }
 }
 
@@ -79,7 +82,9 @@ pub fn handle_load_preview(conn: &Connection, table: &str) -> Result<BrowserEven
 
     // Get row count
     let row_count: u64 = conn
-        .query_row(&format!("SELECT COUNT(*) FROM {}", quoted), [], |r| r.get(0))
+        .query_row(&format!("SELECT COUNT(*) FROM {}", quoted), [], |r| {
+            r.get(0)
+        })
         .map_err(|e| format!("Count failed: {}", e))?;
 
     // Get first 50 rows
@@ -115,10 +120,7 @@ pub fn handle_load_preview(conn: &Connection, table: &str) -> Result<BrowserEven
 ///
 /// Returns the copied data as `BrowserEvent::CopyDone` (the actual clipboard
 /// write happens in the facade layer, not here on the worker thread).
-pub fn handle_copy_tables(
-    _conn: &Connection,
-    _tables: &[String],
-) -> Result<BrowserEvent, String> {
+pub fn handle_copy_tables(_conn: &Connection, _tables: &[String]) -> Result<BrowserEvent, String> {
     // The actual data collection is done here; the facade will write to clipboard.
     // We return CopyDone — the facade handles clipboard writes separately.
     // But we need to return the data. The current BrowserEvent::CopyDone has no data.
@@ -220,7 +222,11 @@ pub fn handle_paste_tables(
 
 /// Execute raw SQL in the browser context.
 pub fn handle_execute_sql(conn: &Connection, sql: &str) -> Result<BrowserEvent, String> {
-    let stmts: Vec<&str> = sql.split(';').map(|s| s.trim()).filter(|s| !s.is_empty()).collect();
+    let stmts: Vec<&str> = sql
+        .split(';')
+        .map(|s| s.trim())
+        .filter(|s| !s.is_empty())
+        .collect();
     for stmt in &stmts {
         conn.execute_batch(stmt)
             .map_err(|e| format!("Failed: {}", e))?;

@@ -18,9 +18,7 @@ pub fn decode_sqlite_value(row: &rusqlite::Row, idx: usize) -> CellValue {
             ValueRef::Null => CellValue::Null,
             ValueRef::Integer(i) => CellValue::Int(i),
             ValueRef::Real(f) => CellValue::Float(f),
-            ValueRef::Text(bytes) => {
-                CellValue::Text(String::from_utf8_lossy(bytes).into_owned())
-            }
+            ValueRef::Text(bytes) => CellValue::Text(String::from_utf8_lossy(bytes).into_owned()),
             ValueRef::Blob(bytes) => CellValue::Blob(bytes.to_vec()),
         },
         Err(_) => CellValue::Null,

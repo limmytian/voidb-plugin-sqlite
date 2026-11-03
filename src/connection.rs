@@ -7,9 +7,9 @@ use std::collections::HashMap;
 
 use voidb_core::connection::ConnectionConfig;
 use voidb_core::plugin::{
-    ConnectionDataProvider, ConnectionDisplayProvider, ConnectionSummary, DisplayLayout,
-    FieldDefinition, FieldType, ValidationRule, QuickAction, DisplayConfig,
-    ViewMode, DefaultColumn, SortOption, FilterOption,
+    ConnectionDataProvider, ConnectionDisplayProvider, ConnectionSummary, DefaultColumn,
+    DisplayConfig, DisplayLayout, FieldDefinition, FieldType, FilterOption, QuickAction,
+    SortOption, ValidationRule, ViewMode,
 };
 
 /// SQLite plugin connection data provider
@@ -35,7 +35,8 @@ impl ConnectionDataProvider for SqliteConnectionProvider {
     fn get_connection_summary(&self, config: &ConnectionConfig) -> ConnectionSummary {
         use crate::config::SqliteConfig;
 
-        let sqlite_config: SqliteConfig = config.plugin_config
+        let sqlite_config: SqliteConfig = config
+            .plugin_config
             .as_ref()
             .and_then(|pc| serde_json::from_value(pc.clone()).ok())
             .unwrap_or_default();
@@ -54,7 +55,11 @@ impl ConnectionDataProvider for SqliteConnectionProvider {
             type_label: "SQLite".to_string(),
             primary_info: filename.to_string(),
             secondary_info: format!("path: {}", path),
-            tags: vec!["database".to_string(), "sql".to_string(), "file".to_string()],
+            tags: vec![
+                "database".to_string(),
+                "sql".to_string(),
+                "file".to_string(),
+            ],
             metadata: HashMap::new(),
             display_layout: DisplayLayout {
                 columns: vec![],
@@ -65,33 +70,31 @@ impl ConnectionDataProvider for SqliteConnectionProvider {
     }
 
     fn get_custom_fields(&self) -> Vec<FieldDefinition> {
-        vec![
-            FieldDefinition {
-                name: "journal_mode".to_string(),
-                label: "Journal Mode".to_string(),
-                field_type: FieldType::Select {
-                    options: vec![
-                        "wal".to_string(),
-                        "delete".to_string(),
-                        "truncate".to_string(),
-                        "persist".to_string(),
-                        "memory".to_string(),
-                        "off".to_string(),
-                    ],
-                },
-                default_value: Some(serde_json::json!("wal")),
-                validation: ValidationRule::OneOf(vec![
+        vec![FieldDefinition {
+            name: "journal_mode".to_string(),
+            label: "Journal Mode".to_string(),
+            field_type: FieldType::Select {
+                options: vec![
                     "wal".to_string(),
                     "delete".to_string(),
                     "truncate".to_string(),
                     "persist".to_string(),
                     "memory".to_string(),
                     "off".to_string(),
-                ]),
-                help_text: Some("SQLite journal mode for write operations".to_string()),
-                required: false,
+                ],
             },
-        ]
+            default_value: Some(serde_json::json!("wal")),
+            validation: ValidationRule::OneOf(vec![
+                "wal".to_string(),
+                "delete".to_string(),
+                "truncate".to_string(),
+                "persist".to_string(),
+                "memory".to_string(),
+                "off".to_string(),
+            ]),
+            help_text: Some("SQLite journal mode for write operations".to_string()),
+            required: false,
+        }]
     }
 
     fn validate_custom_field(&self, name: &str, value: &Value) -> Result<(), String> {
@@ -155,15 +158,8 @@ impl ConnectionDisplayProvider for SqliteConnectionProvider {
                 DefaultColumn::LastUsed,
             ],
             custom_columns: vec![],
-            sort_options: vec![
-                SortOption::Name,
-                SortOption::LastUsed,
-                SortOption::Status,
-            ],
-            filter_options: vec![
-                FilterOption::ByStatus,
-                FilterOption::ByTag,
-            ],
+            sort_options: vec![SortOption::Name, SortOption::LastUsed, SortOption::Status],
+            filter_options: vec![FilterOption::ByStatus, FilterOption::ByTag],
         }
     }
 

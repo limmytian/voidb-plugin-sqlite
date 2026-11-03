@@ -3,8 +3,8 @@
 //! Events are sent from the SyncWorker back to the TUI plugin.
 //! The TUI polls events via `SqliteService::poll_event()`.
 
-use voidb_core::{ColumnInfo, Row};
 use voidb_core::database::types::ForeignKeyInfo;
+use voidb_core::{ColumnInfo, Row};
 
 /// Top-level event enum for the SQLite service.
 #[derive(Debug)]
@@ -134,7 +134,9 @@ pub enum BrowserEvent {
     CopyDone,
 
     /// Copy data ready for clipboard write (internal use by facade).
-    CopyDataReady { data: Vec<super::commands::TableCopyData> },
+    CopyDataReady {
+        data: Vec<super::commands::TableCopyData>,
+    },
 
     /// Paste operation completed.
     PasteDone,

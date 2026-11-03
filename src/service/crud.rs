@@ -9,13 +9,16 @@ use voidb_core::{CellValue, ColumnInfo, Row};
 
 use super::commands::PasteMode;
 use super::events::StatementResult;
-use super::value_convert::{build_pk_where, decode_sqlite_value, extract_columns, quote_sqlite_value};
+use super::value_convert::{
+    build_pk_where, decode_sqlite_value, extract_columns, quote_sqlite_value,
+};
 
 /// Execute a single SQL query and return columns + rows.
-pub fn handle_execute_query(conn: &Connection, sql: &str) -> Result<(Vec<ColumnInfo>, Vec<Row>), String> {
-    let mut stmt = conn
-        .prepare(sql)
-        .map_err(|e| format!("Prepare: {}", e))?;
+pub fn handle_execute_query(
+    conn: &Connection,
+    sql: &str,
+) -> Result<(Vec<ColumnInfo>, Vec<Row>), String> {
+    let mut stmt = conn.prepare(sql).map_err(|e| format!("Prepare: {}", e))?;
 
     let columns = extract_columns(&stmt);
     let col_count = columns.len();
@@ -107,10 +110,9 @@ pub fn handle_save_changes(
             continue;
         }
         let row_values = &rows[*row_idx].values;
-        let where_clause = build_pk_where(pk_columns, row_values, columns)
-            .inspect_err(|_| {
-                let _ = conn.execute_batch("ROLLBACK");
-            })?;
+        let where_clause = build_pk_where(pk_columns, row_values, columns).inspect_err(|_| {
+            let _ = conn.execute_batch("ROLLBACK");
+        })?;
 
         let set_parts: Vec<String> = edits
             .iter()
@@ -141,10 +143,9 @@ pub fn handle_save_changes(
     let mut delete_count = 0;
     for &row_idx in deleted {
         let row_values = &rows[row_idx].values;
-        let where_clause = build_pk_where(pk_columns, row_values, columns)
-            .inspect_err(|_| {
-                let _ = conn.execute_batch("ROLLBACK");
-            })?;
+        let where_clause = build_pk_where(pk_columns, row_values, columns).inspect_err(|_| {
+            let _ = conn.execute_batch("ROLLBACK");
+        })?;
         let sql = format!("DELETE FROM {} WHERE {}", qtable, where_clause);
         conn.execute(&sql, []).map_err(|e| {
             let _ = conn.execute_batch("ROLLBACK");
