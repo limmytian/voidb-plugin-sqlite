@@ -1,0 +1,1062 @@
+{
+ "profile_label": "fixture-sqlite-ops",
+ "file_label": "fixture-sqlite-local",
+ "connection_kind": "file",
+ "status": "fixture sqlite operations ready",
+ "target_error": "target error: SQLITE_BUSY: database file is locked by a concurrent writer (fixture)",
+ "error_tables": [
+  "locked_table"
+ ],
+ "error_message": "target error: SQLITE_BUSY: database file is locked while mutating locked_table (fixture)",
+ "tables": [
+  {
+   "name": "users",
+   "table_type": "table",
+   "rows": 12
+  },
+  {
+   "name": "sessions",
+   "table_type": "table",
+   "rows": 3
+  },
+  {
+   "name": "documents",
+   "table_type": "table",
+   "rows": 6
+  },
+  {
+   "name": "keyvalue",
+   "table_type": "table",
+   "rows": 2
+  },
+  {
+   "name": "locked_table",
+   "table_type": "table",
+   "rows": 1
+  },
+  {
+   "name": "empty_archive",
+   "table_type": "table",
+   "rows": 0
+  }
+ ],
+ "views": [
+  "active_users_view"
+ ],
+ "table_data": {
+  "users": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "username",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "email",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "settings_json",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "created_at",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": "CURRENT_TIMESTAMP",
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [
+    "id"
+   ],
+   "rows": [
+    [
+     {
+      "Int": 1
+     },
+     {
+      "Text": "svc-test-artifact"
+     },
+     {
+      "Text": "svc-test-artifact@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"test\",\"stale\":true}"
+     },
+     {
+      "DateTime": "2026-10-31 22:14:07"
+     }
+    ],
+    [
+     {
+      "Int": 2
+     },
+     {
+      "Text": "alice"
+     },
+     {
+      "Text": "alice@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-12 09:03:44"
+     }
+    ],
+    [
+     {
+      "Int": 3
+     },
+     {
+      "Text": "bob"
+     },
+     {
+      "Null": null
+     },
+     {
+      "Null": null
+     },
+     {
+      "DateTime": "2026-09-13 11:20:05"
+     }
+    ],
+    [
+     {
+      "Int": 4
+     },
+     {
+      "Text": "carol"
+     },
+     {
+      "Text": "carol@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"light\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-14 15:41:12"
+     }
+    ],
+    [
+     {
+      "Int": 5
+     },
+     {
+      "Text": "dave"
+     },
+     {
+      "Text": "dave@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-15 08:02:33"
+     }
+    ],
+    [
+     {
+      "Int": 6
+     },
+     {
+      "Text": "erin"
+     },
+     {
+      "Text": "erin@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-16 19:55:27"
+     }
+    ],
+    [
+     {
+      "Int": 7
+     },
+     {
+      "Text": "frank"
+     },
+     {
+      "Null": null
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-17 07:14:59"
+     }
+    ],
+    [
+     {
+      "Int": 8
+     },
+     {
+      "Text": "grace"
+     },
+     {
+      "Text": "grace@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"solarized\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-18 10:30:21"
+     }
+    ],
+    [
+     {
+      "Int": 9
+     },
+     {
+      "Text": "heidi"
+     },
+     {
+      "Text": "heidi@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-19 12:48:03"
+     }
+    ],
+    [
+     {
+      "Int": 10
+     },
+     {
+      "Text": "ivan"
+     },
+     {
+      "Text": "ivan@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-20 23:59:41"
+     }
+    ],
+    [
+     {
+      "Int": 11
+     },
+     {
+      "Text": "judy"
+     },
+     {
+      "Text": "judy@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark\",\"stale\":false}"
+     },
+     {
+      "DateTime": "2026-09-21 06:17:18"
+     }
+    ],
+    [
+     {
+      "Int": 12
+     },
+     {
+      "Text": "mallory"
+     },
+     {
+      "Text": "mallory@fixture.internal"
+     },
+     {
+      "Json": "{\"theme\":\"dark-high-contrast\",\"stale\":false,\"notes\":\"pinned for the bounded row viewer: this settings blob is deliberately longer than one grid cell so the typed row detail must wrap or bound it\",\"flags\":[\"beta\",\"telemetry-optout\"],\"version\":3}"
+     },
+     {
+      "DateTime": "2026-09-22 14:26:50"
+     }
+    ]
+   ]
+  },
+  "sessions": {
+   "columns": [
+    {
+     "name": "token",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "user_id",
+     "data_type": "INTEGER",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "expires_at",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "payload",
+     "data_type": "BLOB",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [
+    "token"
+   ],
+   "rows": [
+    [
+     {
+      "Text": "sess-a1b2c3d4e5"
+     },
+     {
+      "Int": 2
+     },
+     {
+      "DateTime": "2026-11-02 18:30:00"
+     },
+     {
+      "Blob": [
+       222,
+       173,
+       190,
+       239
+      ]
+     }
+    ],
+    [
+     {
+      "Text": "sess-d4e5f6a7b8"
+     },
+     {
+      "Null": null
+     },
+     {
+      "DateTime": "2026-11-01 08:00:00"
+     },
+     {
+      "Null": null
+     }
+    ],
+    [
+     {
+      "Text": "sess-c9d0e1f2a3"
+     },
+     {
+      "Int": 1
+     },
+     {
+      "DateTime": "2026-10-15 12:00:00"
+     },
+     {
+      "Blob": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32
+      ]
+     }
+    ]
+   ]
+  },
+  "documents": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "title",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "body",
+     "data_type": "BLOB",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "meta_json",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [
+    "id"
+   ],
+   "rows": [
+    [
+     {
+      "Int": 1
+     },
+     {
+      "Text": "onboarding-handbook"
+     },
+     {
+      "Blob": [
+       137,
+       80,
+       78,
+       71,
+       13,
+       10,
+       26,
+       10,
+       0,
+       0,
+       0,
+       13,
+       73,
+       72,
+       68,
+       82,
+       0,
+       0,
+       0,
+       16,
+       0,
+       0,
+       0,
+       16,
+       8,
+       6,
+       0,
+       0,
+       0,
+       31,
+       243,
+       255
+      ]
+     },
+     {
+      "Json": "{\"pages\":12,\"version\":2}"
+     }
+    ],
+    [
+     {
+      "Int": 2
+     },
+     {
+      "Text": "runbook-incident-busy-db"
+     },
+     {
+      "Blob": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32
+      ]
+     },
+     {
+      "Null": null
+     }
+    ],
+    [
+     {
+      "Int": 3
+     },
+     {
+      "Text": "receipt-2026-10-28"
+     },
+     {
+      "Blob": [
+       80,
+       75,
+       3,
+       4,
+       20,
+       0,
+       0,
+       0,
+       8,
+       0,
+       114,
+       233,
+       229,
+       87,
+       205,
+       114
+      ]
+     },
+     {
+      "Json": "{\"total\":4800,\"currency\":\"usd\"}"
+     }
+    ],
+    [
+     {
+      "Int": 4
+     },
+     {
+      "Text": "whiteboard-export"
+     },
+     {
+      "Blob": [
+       137,
+       80,
+       78,
+       71,
+       13,
+       10,
+       26,
+       10,
+       0,
+       0,
+       0,
+       13,
+       73,
+       72,
+       68,
+       82,
+       0,
+       0,
+       0,
+       16,
+       0,
+       0,
+       0,
+       16,
+       8,
+       6,
+       0,
+       0,
+       0,
+       31,
+       243,
+       255
+      ]
+     },
+     {
+      "Null": null
+     }
+    ],
+    [
+     {
+      "Int": 5
+     },
+     {
+      "Text": "release-notes-draft"
+     },
+     {
+      "Blob": [
+       1,
+       2,
+       3,
+       4,
+       5,
+       6,
+       7,
+       8,
+       9,
+       10,
+       11,
+       12,
+       13,
+       14,
+       15,
+       16,
+       17,
+       18,
+       19,
+       20,
+       21,
+       22,
+       23,
+       24,
+       25,
+       26,
+       27,
+       28,
+       29,
+       30,
+       31,
+       32
+      ]
+     },
+     {
+      "Json": "{\"draft\":true}"
+     }
+    ],
+    [
+     {
+      "Int": 6
+     },
+     {
+      "Text": "keynote-2026-q4"
+     },
+     {
+      "Blob": [
+       222,
+       173,
+       190,
+       239
+      ]
+     },
+     {
+      "Json": "{\"slides\":31}"
+     }
+    ]
+   ]
+  },
+  "keyvalue": {
+   "columns": [
+    {
+     "name": "k",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "v",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [],
+   "rows": [
+    [
+     {
+      "Text": "last_sync_at"
+     },
+     {
+      "Text": "2026-11-01T07:45:12Z"
+     }
+    ],
+    [
+     {
+      "Text": "install_id"
+     },
+     {
+      "Text": "b31b-aa7a-3de6"
+     }
+    ]
+   ]
+  },
+  "locked_table": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "note",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [
+    "id"
+   ],
+   "rows": [
+    [
+     {
+      "Int": 1
+     },
+     {
+      "Text": "held by a long-running writer"
+     }
+    ]
+   ]
+  },
+  "empty_archive": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "archived_at",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "pks": [
+    "id"
+   ],
+   "rows": []
+  }
+ },
+ "structures": {
+  "users": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "username",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "email",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "settings_json",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "created_at",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": "CURRENT_TIMESTAMP",
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [],
+   "foreign_keys": [],
+   "ddl": "CREATE TABLE \"users\" (\n  \"id\" INTEGER NOT NULL PRIMARY KEY,\n  \"username\" TEXT NOT NULL,\n  \"email\" TEXT,\n  \"settings_json\" TEXT,\n  \"created_at\" TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP\n);"
+  },
+  "sessions": {
+   "columns": [
+    {
+     "name": "token",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "user_id",
+     "data_type": "INTEGER",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "expires_at",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "payload",
+     "data_type": "BLOB",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [
+    {
+     "name": "idx_sessions_user_id",
+     "columns": [
+      "user_id"
+     ],
+     "unique": false,
+     "index_type": "BTREE"
+    }
+   ],
+   "foreign_keys": [
+    {
+     "name": "fk_sessions_users",
+     "columns": [
+      "user_id"
+     ],
+     "referenced_table": "users",
+     "referenced_columns": [
+      "id"
+     ],
+     "on_update": "NO ACTION",
+     "on_delete": "CASCADE"
+    }
+   ],
+   "ddl": "CREATE TABLE \"sessions\" (\n  \"token\" TEXT NOT NULL PRIMARY KEY,\n  \"user_id\" INTEGER,\n  \"expires_at\" TEXT,\n  \"payload\" BLOB\n);\nCREATE INDEX \"idx_sessions_user_id\" ON \"sessions\" (\"user_id\");"
+  },
+  "documents": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "title",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "body",
+     "data_type": "BLOB",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "meta_json",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [
+    {
+     "name": "idx_documents_title",
+     "columns": [
+      "title"
+     ],
+     "unique": true,
+     "index_type": "BTREE"
+    }
+   ],
+   "foreign_keys": [],
+   "ddl": "CREATE TABLE \"documents\" (\n  \"id\" INTEGER NOT NULL PRIMARY KEY,\n  \"title\" TEXT NOT NULL,\n  \"body\" BLOB,\n  \"meta_json\" TEXT\n);\nCREATE UNIQUE INDEX \"idx_documents_title\" ON \"documents\" (\"title\");"
+  },
+  "keyvalue": {
+   "columns": [
+    {
+     "name": "k",
+     "data_type": "TEXT",
+     "nullable": false,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    },
+    {
+     "name": "v",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [],
+   "foreign_keys": [],
+   "ddl": "CREATE TABLE \"keyvalue\" (\n  \"k\" TEXT NOT NULL,\n  \"v\" TEXT\n);"
+  },
+  "locked_table": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "note",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [],
+   "foreign_keys": [],
+   "ddl": "CREATE TABLE \"locked_table\" (\n  \"id\" INTEGER NOT NULL PRIMARY KEY,\n  \"note\" TEXT\n);"
+  },
+  "empty_archive": {
+   "columns": [
+    {
+     "name": "id",
+     "data_type": "INTEGER",
+     "nullable": false,
+     "is_primary_key": true,
+     "default_value": null,
+     "max_length": null,
+     "extra": "PRIMARY KEY"
+    },
+    {
+     "name": "archived_at",
+     "data_type": "TEXT",
+     "nullable": true,
+     "is_primary_key": false,
+     "default_value": null,
+     "max_length": null,
+     "extra": ""
+    }
+   ],
+   "indexes": [],
+   "foreign_keys": [],
+   "ddl": "CREATE TABLE \"empty_archive\" (\n  \"id\" INTEGER NOT NULL PRIMARY KEY,\n  \"archived_at\" TEXT\n);"
+  }
+ }
+}
