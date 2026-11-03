@@ -1,12 +1,19 @@
+use std::fs;
+
 use async_trait::async_trait;
-use clap::{Arg, ArgMatches, Command};
+use chrono::Utc;
+use clap::{Arg, ArgAction, ArgMatches, Command};
 use voidb_core::database::types::QueryResult;
 use voidb_core::formatters::{cell_value_to_csv, cell_value_to_json, print_table};
 use voidb_core::plugin::cli::{CliContext, CliPlugin};
-use voidb_core::VoidbError;
+use voidb_core::{ConnectionProfileRef, TuiLaunchRequest, VoidbError, build_tui_launch_plan};
 
 use crate::config::SqliteConfig;
 use crate::service::{SqliteService, StatementResult};
+use crate::tui::{
+    SqliteTuiLaunch, SqliteTuiSource, build_sqlite_tui_evidence, run_sqlite_tui,
+    write_sqlite_tui_preflight,
+};
 
 pub struct SqliteCliPlugin;
 
@@ -60,6 +67,59 @@ impl CliPlugin for SqliteCliPlugin {
                         .action(clap::ArgAction::SetTrue)
                         .help("Read connection configuration JSON from stdin"),
                 ),
+            Command::new("tui")
+                .about("Launch the standalone SQLite data-inspector TUI (pilot)")
+                .arg(
+                    Arg::new("profile")
+                        .long("profile")
+                        .value_name("PROFILE")
+                        .conflicts_with("connection")
+                        .help("Profile name, id:<id>, or name:<name>"),
+                )
+                .arg(
+                    Arg::new("connection")
+                        .short('c')
+                        .long("connection")
+                        .value_name("CONNECTION")
+                        .conflicts_with("profile")
+                        .help("Legacy connection name"),
+                )
+                .arg(
+                    Arg::new("fixture").long("fixture").value_name("PATH").help(
+                        "Load deterministic SQLite TUI fixture JSON instead of opening a file",
+                    ),
+                )
+                .arg(
+                    Arg::new("purpose")
+                        .long("purpose")
+                        .value_name("PURPOSE")
+                        .default_value("operations")
+                        .help("Launch purpose, for example operations or triage"),
+                )
+                .arg(
+                    Arg::new("readonly")
+                        .long("readonly")
+                        .action(ArgAction::SetTrue)
+                        .help("Stage operation plans but block mutating service commands"),
+                )
+                .arg(
+                    Arg::new("no-restore")
+                        .long("no-restore")
+                        .action(ArgAction::SetTrue)
+                        .help("Start without restoring plugin-owned UI state"),
+                )
+                .arg(
+                    Arg::new("format")
+                        .long("format")
+                        .value_parser(["json"])
+                        .help("Emit secret-free preflight JSON and exit"),
+                )
+                .arg(
+                    Arg::new("evidence")
+                        .long("evidence")
+                        .value_name("PATH")
+                        .help("Write fixture-backed standalone SQLite TUI evidence JSON and exit"),
+                ),
         ]
     }
 
@@ -74,6 +134,7 @@ impl CliPlugin for SqliteCliPlugin {
             "tables" => self.handle_tables(matches, ctx).await,
             "describe" => self.handle_describe(matches, ctx).await,
             "test" => self.handle_test(matches, ctx).await,
+            "tui" => self.handle_tui(matches, ctx).await,
             _ => Err(VoidbError::Plugin(format!("Unknown command: {}", command))),
         }
     }
@@ -115,15 +176,10 @@ impl SqliteCliPlugin {
         )
         .map_err(|e| VoidbError::Config(e.to_string()))?;
 
-        SqliteService::new_direct(&sqlite_config)
-            .map_err(VoidbError::Connection)
+        SqliteService::new_direct(&sqlite_config).map_err(VoidbError::Connection)
     }
 
-    async fn handle_query(
-        &self,
-        matches: &ArgMatches,
-        ctx: &CliContext,
-    ) -> Result<(), VoidbError> {
+    async fn handle_query(&self, matches: &ArgMatches, ctx: &CliContext) -> Result<(), VoidbError> {
         let conn_name = matches.get_one::<String>("connection").unwrap();
         let sql = matches.get_one::<String>("sql").unwrap();
         let format = matches
@@ -261,7 +317,11 @@ impl SqliteCliPlugin {
                     "  {} ({}) [{}]",
                     idx.name,
                     idx.columns.join(", "),
-                    if idx.unique { "UNIQUE" } else { &idx.index_type },
+                    if idx.unique {
+                        "UNIQUE"
+                    } else {
+                        &idx.index_type
+                    },
                 );
             }
         }
@@ -282,11 +342,7 @@ impl SqliteCliPlugin {
         Ok(())
     }
 
-    async fn handle_test(
-        &self,
-        matches: &ArgMatches,
-        ctx: &CliContext,
-    ) -> Result<(), VoidbError> {
+    async fn handle_test(&self, matches: &ArgMatches, ctx: &CliContext) -> Result<(), VoidbError> {
         if matches.get_flag("stdin-config") {
             use std::io::Read;
             let mut input = String::new();
@@ -324,5 +380,172 @@ impl SqliteCliPlugin {
                 "Either --connection or --stdin-config is required".into(),
             ))
         }
+    }
+
+    /// Resolve a legacy connection name into a SQLite plugin config without
+    /// building the service (the TUI owns its service lifecycle).
+    fn parse_config(conn_name: &str, ctx: &CliContext) -> Result<SqliteConfig, VoidbError> {
+        let config = if let Some(config) = ctx.find_connection(conn_name) {
+            config.clone()
+        } else if let Ok((_profile, config)) =
+            ctx.resolve_profile_connection(conn_name, Some("sqlite"))
+        {
+            config
+        } else {
+            return Err(VoidbError::Plugin(format!(
+                "Connection or profile '{}' not found",
+                conn_name
+            )));
+        };
+
+        if config.effective_plugin_id() != "sqlite" {
+            return Err(VoidbError::Plugin(format!(
+                "Connection '{}' is not a SQLite connection (plugin: {})",
+                conn_name,
+                config.effective_plugin_id()
+            )));
+        }
+
+        let sqlite_config: SqliteConfig = serde_json::from_value(
+            config
+                .plugin_config
+                .as_ref()
+                .ok_or_else(|| VoidbError::Config("Missing plugin_config".into()))?
+                .clone(),
+        )
+        .map_err(|e| VoidbError::Config(e.to_string()))?;
+
+        Ok(sqlite_config)
+    }
+
+    fn parse_tui_launch(
+        matches: &ArgMatches,
+        ctx: &CliContext,
+    ) -> Result<SqliteTuiLaunch, VoidbError> {
+        let fixture_path = matches.get_one::<String>("fixture").cloned();
+        let purpose = matches
+            .get_one::<String>("purpose")
+            .cloned()
+            .unwrap_or_else(|| "operations".to_string());
+        let readonly = matches.get_flag("readonly");
+        let restore = !matches.get_flag("no-restore");
+
+        if let Some(profile_ref) = matches.get_one::<String>("profile") {
+            let (profile, connection) =
+                ctx.resolve_profile_connection(profile_ref, Some("sqlite"))?;
+            let config: SqliteConfig = connection
+                .plugin_config
+                .as_ref()
+                .ok_or_else(|| VoidbError::Connection("Missing plugin_config".to_string()))
+                .and_then(|pc| {
+                    serde_json::from_value(pc.clone()).map_err(|e| {
+                        VoidbError::Connection(format!("Invalid SQLite config: {}", e))
+                    })
+                })?;
+            let profile_arg = profile_ref_arg(profile_ref, &profile.id);
+            let request = TuiLaunchRequest::new("sqlite", profile_arg, purpose.clone())
+                .readonly(readonly)
+                .restore(restore)
+                .raw_input(false);
+            let launch_plan = build_tui_launch_plan(&profile, request, "voidb-cli", Utc::now())?;
+
+            return Ok(SqliteTuiLaunch {
+                profile_label: profile.name,
+                config: Some(config),
+                source: SqliteTuiSource::Profile,
+                fixture_path,
+                purpose,
+                readonly,
+                restore,
+                launch_plan: Some(launch_plan),
+            });
+        }
+
+        if let Some(conn_name) = matches.get_one::<String>("connection") {
+            let config = Self::parse_config(conn_name, ctx)?;
+            return Ok(SqliteTuiLaunch {
+                profile_label: conn_name.clone(),
+                config: Some(config),
+                source: SqliteTuiSource::Connection,
+                fixture_path,
+                purpose,
+                readonly,
+                restore,
+                launch_plan: None,
+            });
+        }
+
+        if fixture_path.is_some() {
+            return Ok(SqliteTuiLaunch {
+                profile_label: "fixture".to_string(),
+                config: None,
+                source: SqliteTuiSource::Fixture,
+                fixture_path,
+                purpose,
+                readonly,
+                restore,
+                launch_plan: None,
+            });
+        }
+
+        Err(VoidbError::Plugin(
+            "sqlite tui requires --profile, --connection, or --fixture".to_string(),
+        ))
+    }
+
+    async fn handle_tui(&self, matches: &ArgMatches, ctx: &CliContext) -> Result<(), VoidbError> {
+        let launch = Self::parse_tui_launch(matches, ctx)?;
+        if let Some(path) = matches.get_one::<String>("evidence") {
+            let evidence = build_sqlite_tui_evidence(&launch)
+                .map_err(|e| VoidbError::Plugin(format!("SQLite TUI evidence failed: {}", e)))?;
+            let rendered = serde_json::to_string_pretty(&evidence).map_err(|e| {
+                VoidbError::Plugin(format!("SQLite TUI evidence serialization failed: {}", e))
+            })?;
+            if let Some(parent) = std::path::Path::new(path).parent()
+                && !parent.as_os_str().is_empty()
+            {
+                fs::create_dir_all(parent).map_err(|e| {
+                    VoidbError::Plugin(format!(
+                        "Failed to create SQLite TUI evidence directory '{}': {}",
+                        parent.display(),
+                        e
+                    ))
+                })?;
+            }
+            fs::write(path, rendered).map_err(|e| {
+                VoidbError::Plugin(format!(
+                    "Failed to write SQLite TUI evidence '{}': {}",
+                    path, e
+                ))
+            })?;
+            println!("Wrote SQLite TUI evidence to {path}");
+            return Ok(());
+        }
+
+        if matches
+            .get_one::<String>("format")
+            .is_some_and(|format| format == "json")
+        {
+            write_sqlite_tui_preflight(&launch)
+                .map_err(|e| VoidbError::Plugin(format!("SQLite TUI preflight failed: {}", e)))?;
+            return Ok(());
+        }
+
+        run_sqlite_tui(launch).map_err(|e| VoidbError::Plugin(format!("SQLite TUI failed: {}", e)))
+    }
+}
+
+fn profile_ref_arg(input: &str, profile_id: &str) -> ConnectionProfileRef {
+    if let Some(id) = input.strip_prefix("id:") {
+        ConnectionProfileRef::Id(id.to_string())
+    } else if let Some(name) = input
+        .strip_prefix("name:")
+        .or_else(|| input.strip_prefix("alias:"))
+    {
+        ConnectionProfileRef::Name(name.to_string())
+    } else if input == profile_id {
+        ConnectionProfileRef::Id(input.to_string())
+    } else {
+        ConnectionProfileRef::Name(input.to_string())
     }
 }

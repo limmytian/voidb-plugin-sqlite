@@ -1,22 +1,23 @@
 mod agent_session;
-mod cli_plugin;
 mod capabilities;
+mod cli_plugin;
 mod config;
 mod connection;
 pub mod service;
+pub mod tui;
 
 use async_trait::async_trait;
 use rusqlite::Connection;
 use std::sync::{Arc, Mutex};
 
 use voidb_core::connection::{ConnectionConfig, DatabaseType};
-use voidb_core::database::types::*;
 use voidb_core::database::DatabaseAdapter;
+use voidb_core::database::types::*;
 use voidb_core::error::VoidbError;
 
-pub use cli_plugin::create_sqlite_cli_plugin;
 pub use agent_session::SqliteAgentSessionFactory;
 pub use capabilities::{invoke_sqlite_capability, sqlite_capabilities};
+pub use cli_plugin::create_sqlite_cli_plugin;
 pub use config::SqliteConfig;
 pub use connection::SqliteConnectionProvider;
 pub use service::{SqliteCommand, SqliteEvent, SqliteService};
@@ -50,7 +51,11 @@ pub fn sqlite_describe_table(conn: &Connection, table: &str) -> Result<TableSche
                 is_primary_key: pk > 0,
                 default_value,
                 max_length: None,
-                extra: if pk > 0 { "PRIMARY KEY".to_string() } else { String::new() },
+                extra: if pk > 0 {
+                    "PRIMARY KEY".to_string()
+                } else {
+                    String::new()
+                },
             })
         })
         .map_err(|e| format!("PRAGMA table_info query failed: {}", e))?
@@ -74,7 +79,9 @@ pub fn sqlite_describe_table(conn: &Connection, table: &str) -> Result<TableSche
 
     for (idx_name, unique) in idx_list {
         let sql = format!("PRAGMA index_info(\"{}\")", idx_name.replace('"', "\"\""));
-        let mut info_stmt = conn.prepare(&sql).map_err(|e| format!("index_info failed: {}", e))?;
+        let mut info_stmt = conn
+            .prepare(&sql)
+            .map_err(|e| format!("index_info failed: {}", e))?;
         let cols: Vec<String> = info_stmt
             .query_map([], |row| row.get::<_, String>(2))
             .map_err(|e| format!("index_info query failed: {}", e))?
@@ -95,19 +102,20 @@ pub fn sqlite_describe_table(conn: &Connection, table: &str) -> Result<TableSche
     let fk_rows: Vec<(i32, String, String, String, String, String)> = fk_stmt
         .query_map([], |row| {
             Ok((
-                row.get::<_, i32>(0)?,       // id
-                row.get::<_, String>(2)?,     // table
-                row.get::<_, String>(3)?,     // from
-                row.get::<_, String>(4)?,     // to
-                row.get::<_, String>(5)?,     // on_update
-                row.get::<_, String>(6)?,     // on_delete
+                row.get::<_, i32>(0)?,    // id
+                row.get::<_, String>(2)?, // table
+                row.get::<_, String>(3)?, // from
+                row.get::<_, String>(4)?, // to
+                row.get::<_, String>(5)?, // on_update
+                row.get::<_, String>(6)?, // on_delete
             ))
         })
         .map_err(|e| format!("foreign_key_list query failed: {}", e))?
         .filter_map(|r| r.ok())
         .collect();
 
-    let mut fk_map: std::collections::HashMap<i32, ForeignKeyInfo> = std::collections::HashMap::new();
+    let mut fk_map: std::collections::HashMap<i32, ForeignKeyInfo> =
+        std::collections::HashMap::new();
     for (id, ref_table, from_col, to_col, on_update, on_delete) in fk_rows {
         let entry = fk_map.entry(id).or_insert_with(|| ForeignKeyInfo {
             name: format!("fk_{}_{}", table, id),
@@ -162,8 +170,18 @@ pub fn sqlite_generate_create_table(schema: &TableSchema) -> String {
     }
 
     for fk in &schema.foreign_keys {
-        let from = fk.columns.iter().map(|c| format!("\"{}\"", c.replace('"', "\"\""))).collect::<Vec<_>>().join(", ");
-        let to = fk.referenced_columns.iter().map(|c| format!("\"{}\"", c.replace('"', "\"\""))).collect::<Vec<_>>().join(", ");
+        let from = fk
+            .columns
+            .iter()
+            .map(|c| format!("\"{}\"", c.replace('"', "\"\"")))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let to = fk
+            .referenced_columns
+            .iter()
+            .map(|c| format!("\"{}\"", c.replace('"', "\"\"")))
+            .collect::<Vec<_>>()
+            .join(", ");
         let mut fk_sql = format!(
             "FOREIGN KEY ({}) REFERENCES \"{}\" ({})",
             from,
@@ -223,7 +241,8 @@ impl DatabaseAdapter for SqliteAdapter {
     async fn connect(config: &ConnectionConfig) -> Result<Box<dyn DatabaseAdapter>, VoidbError> {
         use crate::config::SqliteConfig;
 
-        let sqlite_config: SqliteConfig = config.plugin_config
+        let sqlite_config: SqliteConfig = config
+            .plugin_config
             .as_ref()
             .ok_or_else(|| VoidbError::Connection("Missing plugin_config".to_string()))
             .and_then(|pc| {
@@ -232,8 +251,9 @@ impl DatabaseAdapter for SqliteAdapter {
             })?;
 
         let path = sqlite_config.path.clone();
-        let conn = Connection::open(&path)
-            .map_err(|e| VoidbError::Connection(format!("Failed to open SQLite database '{}': {}", path, e)))?;
+        let conn = Connection::open(&path).map_err(|e| {
+            VoidbError::Connection(format!("Failed to open SQLite database '{}': {}", path, e))
+        })?;
 
         // Enable foreign keys
         conn.execute_batch("PRAGMA foreign_keys = ON;")
@@ -246,7 +266,10 @@ impl DatabaseAdapter for SqliteAdapter {
     }
 
     async fn ping(&self) -> Result<(), VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         conn.execute_batch("SELECT 1")
             .map_err(|e| VoidbError::Connection(format!("Ping failed: {}", e)))?;
         Ok(())
@@ -256,8 +279,12 @@ impl DatabaseAdapter for SqliteAdapter {
         Ok(())
     }
 
-    fn db_type(&self) -> DatabaseType { DatabaseType::SQLite }
-    fn connection_id(&self) -> String { self.connection_id.clone() }
+    fn db_type(&self) -> DatabaseType {
+        DatabaseType::SQLite
+    }
+    fn connection_id(&self) -> String {
+        self.connection_id.clone()
+    }
 
     async fn list_databases(&self) -> Result<Vec<String>, VoidbError> {
         // SQLite has a single database per file; return "main"
@@ -265,68 +292,112 @@ impl DatabaseAdapter for SqliteAdapter {
     }
 
     async fn list_tables(&self, _database: &str) -> Result<Vec<TableInfo>, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         let mut stmt = conn.prepare(
             "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name"
         ).map_err(|e| VoidbError::Query(format!("list_tables: {}", e)))?;
 
-        let tables: Vec<TableInfo> = stmt.query_map([], |row| {
-            let name: String = row.get(0)?;
-            Ok(TableInfo {
-                name,
-                table_type: "TABLE".to_string(),
-                row_count: None,
-                comment: None,
+        let tables: Vec<TableInfo> = stmt
+            .query_map([], |row| {
+                let name: String = row.get(0)?;
+                Ok(TableInfo {
+                    name,
+                    table_type: "TABLE".to_string(),
+                    row_count: None,
+                    comment: None,
+                })
             })
-        })
-        .map_err(|e| VoidbError::Query(format!("list_tables query: {}", e)))?
-        .filter_map(|r| r.ok())
-        .collect();
+            .map_err(|e| VoidbError::Query(format!("list_tables query: {}", e)))?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(tables)
     }
 
     async fn list_views(&self, _database: &str) -> Result<Vec<ViewInfo>, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
-        let mut stmt = conn.prepare(
-            "SELECT name FROM sqlite_master WHERE type='view' ORDER BY name"
-        ).map_err(|e| VoidbError::Query(format!("list_views: {}", e)))?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let mut stmt = conn
+            .prepare("SELECT name FROM sqlite_master WHERE type='view' ORDER BY name")
+            .map_err(|e| VoidbError::Query(format!("list_views: {}", e)))?;
 
-        let views: Vec<ViewInfo> = stmt.query_map([], |row| {
-            let name: String = row.get(0)?;
-            Ok(ViewInfo {
-                name,
-                definition: None,
+        let views: Vec<ViewInfo> = stmt
+            .query_map([], |row| {
+                let name: String = row.get(0)?;
+                Ok(ViewInfo {
+                    name,
+                    definition: None,
+                })
             })
-        })
-        .map_err(|e| VoidbError::Query(format!("list_views query: {}", e)))?
-        .filter_map(|r| r.ok())
-        .collect();
+            .map_err(|e| VoidbError::Query(format!("list_views query: {}", e)))?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(views)
     }
 
-    async fn describe_table(&self, _database: &str, table: &str) -> Result<TableSchema, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+    async fn describe_table(
+        &self,
+        _database: &str,
+        table: &str,
+    ) -> Result<TableSchema, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         sqlite_describe_table(&conn, table).map_err(VoidbError::Query)
     }
 
-    async fn list_indexes(&self, _database: &str, table: &str) -> Result<Vec<IndexInfo>, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+    async fn list_indexes(
+        &self,
+        _database: &str,
+        table: &str,
+    ) -> Result<Vec<IndexInfo>, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         let schema = sqlite_describe_table(&conn, table).map_err(VoidbError::Query)?;
         Ok(schema.indexes)
     }
 
-    async fn list_foreign_keys(&self, _database: &str, table: &str) -> Result<Vec<ForeignKeyInfo>, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+    async fn list_foreign_keys(
+        &self,
+        _database: &str,
+        table: &str,
+    ) -> Result<Vec<ForeignKeyInfo>, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         let schema = sqlite_describe_table(&conn, table).map_err(VoidbError::Query)?;
         Ok(schema.foreign_keys)
     }
 
-    async fn query_rows(&self, sql: &str, _params: &[QueryParam], offset: u64, limit: u64) -> Result<QueryResult, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
-        let paginated = format!("{} LIMIT {} OFFSET {}", sql.trim_end_matches(';'), limit, offset);
-        let mut stmt = conn.prepare(&paginated)
+    async fn query_rows(
+        &self,
+        sql: &str,
+        _params: &[QueryParam],
+        offset: u64,
+        limit: u64,
+    ) -> Result<QueryResult, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let paginated = format!(
+            "{} LIMIT {} OFFSET {}",
+            sql.trim_end_matches(';'),
+            limit,
+            offset
+        );
+        let mut stmt = conn
+            .prepare(&paginated)
             .map_err(|e| VoidbError::Query(format!("Prepare: {}", e)))?;
 
         let col_count = stmt.column_count();
@@ -342,15 +413,16 @@ impl DatabaseAdapter for SqliteAdapter {
             })
             .collect();
 
-        let rows: Vec<Row> = stmt.query_map([], |row| {
-            let values: Vec<CellValue> = (0..col_count)
-                .map(|i| decode_sqlite_value(row, i))
-                .collect();
-            Ok(Row { values })
-        })
-        .map_err(|e| VoidbError::Query(format!("Query: {}", e)))?
-        .filter_map(|r| r.ok())
-        .collect();
+        let rows: Vec<Row> = stmt
+            .query_map([], |row| {
+                let values: Vec<CellValue> = (0..col_count)
+                    .map(|i| decode_sqlite_value(row, i))
+                    .collect();
+                Ok(Row { values })
+            })
+            .map_err(|e| VoidbError::Query(format!("Query: {}", e)))?
+            .filter_map(|r| r.ok())
+            .collect();
 
         Ok(QueryResult {
             columns,
@@ -360,18 +432,33 @@ impl DatabaseAdapter for SqliteAdapter {
         })
     }
 
-    async fn execute(&self, sql: &str, _params: &[QueryParam]) -> Result<ExecuteResult, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
-        let affected = conn.execute(sql, [])
-            .map_err(|e| VoidbError::Query(format!("Execute: {}", e)))? as u64;
+    async fn execute(
+        &self,
+        sql: &str,
+        _params: &[QueryParam],
+    ) -> Result<ExecuteResult, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let affected =
+            conn.execute(sql, [])
+                .map_err(|e| VoidbError::Query(format!("Execute: {}", e)))? as u64;
         Ok(ExecuteResult {
             rows_affected: affected,
             last_insert_id: Some(conn.last_insert_rowid()),
         })
     }
 
-    async fn execute_query(&self, sql: &str, _database: Option<&str>) -> Result<QueryResult, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+    async fn execute_query(
+        &self,
+        sql: &str,
+        _database: Option<&str>,
+    ) -> Result<QueryResult, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         let trimmed = sql.trim();
         let upper = trimmed.to_uppercase();
 
@@ -381,7 +468,8 @@ impl DatabaseAdapter for SqliteAdapter {
             || upper.starts_with("VALUES");
 
         if is_select {
-            let mut stmt = conn.prepare(trimmed)
+            let mut stmt = conn
+                .prepare(trimmed)
                 .map_err(|e| VoidbError::Query(format!("Prepare: {}", e)))?;
 
             let col_count = stmt.column_count();
@@ -397,15 +485,16 @@ impl DatabaseAdapter for SqliteAdapter {
                 })
                 .collect();
 
-            let rows: Vec<Row> = stmt.query_map([], |row| {
-                let values: Vec<CellValue> = (0..col_count)
-                    .map(|i| decode_sqlite_value(row, i))
-                    .collect();
-                Ok(Row { values })
-            })
-            .map_err(|e| VoidbError::Query(format!("Query: {}", e)))?
-            .filter_map(|r| r.ok())
-            .collect();
+            let rows: Vec<Row> = stmt
+                .query_map([], |row| {
+                    let values: Vec<CellValue> = (0..col_count)
+                        .map(|i| decode_sqlite_value(row, i))
+                        .collect();
+                    Ok(Row { values })
+                })
+                .map_err(|e| VoidbError::Query(format!("Query: {}", e)))?
+                .filter_map(|r| r.ok())
+                .collect();
 
             Ok(QueryResult {
                 columns,
@@ -414,8 +503,10 @@ impl DatabaseAdapter for SqliteAdapter {
                 execution_time: std::time::Duration::ZERO,
             })
         } else {
-            let affected = conn.execute(trimmed, [])
-                .map_err(|e| VoidbError::Query(format!("Execute: {}", e)))? as u64;
+            let affected = conn
+                .execute(trimmed, [])
+                .map_err(|e| VoidbError::Query(format!("Execute: {}", e)))?
+                as u64;
             Ok(QueryResult {
                 columns: vec![ColumnInfo {
                     name: "rows_affected".to_string(),
@@ -435,26 +526,44 @@ impl DatabaseAdapter for SqliteAdapter {
         }
     }
 
-    async fn count_rows(&self, _database: &str, table: &str, filter: Option<&str>) -> Result<u64, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+    async fn count_rows(
+        &self,
+        _database: &str,
+        table: &str,
+        filter: Option<&str>,
+    ) -> Result<u64, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
         let quoted = format!("\"{}\"", table.replace('"', "\"\""));
         let sql = if let Some(f) = filter {
             format!("SELECT COUNT(*) FROM {} WHERE {}", quoted, f)
         } else {
             format!("SELECT COUNT(*) FROM {}", quoted)
         };
-        let count: u64 = conn.query_row(&sql, [], |r| r.get(0))
+        let count: u64 = conn
+            .query_row(&sql, [], |r| r.get(0))
             .map_err(|e| VoidbError::Query(format!("count_rows: {}", e)))?;
         Ok(count)
     }
 
-    async fn get_create_table_sql(&self, _database: &str, table: &str) -> Result<String, VoidbError> {
-        let conn = self.conn.lock().map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
-        let sql: String = conn.query_row(
-            "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
-            [table],
-            |r| r.get(0),
-        ).map_err(|e| VoidbError::Query(format!("get_create_table_sql: {}", e)))?;
+    async fn get_create_table_sql(
+        &self,
+        _database: &str,
+        table: &str,
+    ) -> Result<String, VoidbError> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| VoidbError::Other(format!("Lock error: {}", e)))?;
+        let sql: String = conn
+            .query_row(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name=?1",
+                [table],
+                |r| r.get(0),
+            )
+            .map_err(|e| VoidbError::Query(format!("get_create_table_sql: {}", e)))?;
         Ok(format!("{};", sql))
     }
 
