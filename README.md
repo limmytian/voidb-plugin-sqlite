@@ -16,15 +16,15 @@ Independent process plugin for [VoidB](https://github.com/limmytian/voidb) to co
 
 ```bash
 # Connectivity test
-voidb-cli sqlite test --profile my-sqlite
+vb sqlite test --profile my-sqlite
 
 # Run SQL queries and schema inspection
-voidb-cli sqlite tables --profile my-sqlite
-voidb-cli sqlite describe users --profile my-sqlite
-voidb-cli sqlite query "SELECT * FROM users LIMIT 10;" --profile my-sqlite
+vb sqlite tables --profile my-sqlite
+vb sqlite describe users --profile my-sqlite
+vb sqlite query "SELECT * FROM users LIMIT 10;" --profile my-sqlite
 
 # Machine / Agent stdio-jsonrpc server
-voidb-cli sqlite serve
+vb sqlite serve
 ```
 
 ## Optional local SDK development
